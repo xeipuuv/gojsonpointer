@@ -15,7 +15,7 @@ const (
 )
 
 const (
-	INVALID_START = `JSON pointer must be empty or start with a "/"`
+	INVALID_START = `JSON pointer must be empty or start with a "` + POINTER_SEPARATOR + `"`
 )
 
 func NewJsonPointer(jsonPointerString string) (JsonPointer, error) {
