@@ -65,3 +65,9 @@ func decodeReferenceToken(token string) string {
 	step2 := strings.Replace(step1, ENCODED_REFERENCE_TOKEN_0, DECODED_REFERENCE_TOKEN_0, -1)
 	return step2
 }
+
+func encodeReferenceToken(token string) string {
+	step1 := strings.Replace(token, DECODED_REFERENCE_TOKEN_1, ENCODED_REFERENCE_TOKEN_1, -1)
+	step2 := strings.Replace(step1, DECODED_REFERENCE_TOKEN_0, ENCODED_REFERENCE_TOKEN_0, -1)
+	return step2
+}
