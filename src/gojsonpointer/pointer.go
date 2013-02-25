@@ -12,10 +12,11 @@ import (
 const (
 	EMPTY_POINTER     = ``
 	POINTER_SEPARATOR = `/`
+	FRAGMENT          = `#`
 )
 
 const (
-	INVALID_START = `JSON pointer must be empty or start with a "` + POINTER_SEPARATOR + `"`
+	INVALID_START = `JSON pointer must be empty, start with a "` + POINTER_SEPARATOR + `" or a "` + FRAGMENT + `"`
 )
 
 func NewJsonPointer(jsonPointerString string) (JsonPointer, error) {
@@ -36,7 +37,7 @@ func (p *JsonPointer) parse(jsonPointerString string) error {
 	p.stringRepresentation = jsonPointerString
 
 	if p.stringRepresentation != EMPTY_POINTER {
-		if !strings.HasPrefix(p.stringRepresentation, POINTER_SEPARATOR) {
+		if !strings.HasPrefix(p.stringRepresentation, POINTER_SEPARATOR) && !strings.HasPrefix(p.stringRepresentation, FRAGMENT) {
 			err = errors.New(INVALID_START)
 		} else {
 			referenceTokens := strings.Split(p.stringRepresentation, POINTER_SEPARATOR)
