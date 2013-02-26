@@ -24,6 +24,7 @@ func NewJsonPointer(jsonPointerString string) (JsonPointer, error) {
 	var p JsonPointer
 	err := p.parse(jsonPointerString)
 	return p, err
+
 }
 
 type JsonPointer struct {
