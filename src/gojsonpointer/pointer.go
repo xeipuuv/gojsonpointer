@@ -1,5 +1,5 @@
 // @author       sigu-399
-// @description  An implementation of json pointer in Golang
+// @description  An implementation of JSON Pointer - Go language
 // @created      25-02-2013
 
 package gojsonpointer

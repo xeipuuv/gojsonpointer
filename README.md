@@ -1,4 +1,4 @@
 gojsonpointer
 =============
 
-JSON Pointer implementation in Golang
+An implementation of JSON Pointer - Go language
