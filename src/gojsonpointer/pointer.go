@@ -51,7 +51,12 @@ func (p *JsonPointer) parse(jsonPointerString string) error {
 	return err
 }
 
-func (p *JsonPointer) Get(document interface{}) interface{} {
+func (p *JsonPointer) GetValue(document interface{}) interface{} {
+
+	return nil
+}
+
+func (p *JsonPointer) SetValue(document interface{}) interface{} {
 
 	return nil
 }
