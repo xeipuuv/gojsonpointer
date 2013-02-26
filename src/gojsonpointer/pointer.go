@@ -27,20 +27,20 @@ func NewJsonPointer(jsonPointerString string) (JsonPointer, error) {
 }
 
 type JsonPointer struct {
-	stringRepresentation string
-	referenceTokens      []string
+	hasFragment     bool
+	referenceTokens []string
 }
 
 func (p *JsonPointer) parse(jsonPointerString string) error {
 
 	var err error
-	p.stringRepresentation = jsonPointerString
 
-	if p.stringRepresentation != EMPTY_POINTER {
-		if !strings.HasPrefix(p.stringRepresentation, POINTER_SEPARATOR) && !strings.HasPrefix(p.stringRepresentation, FRAGMENT) {
+	if jsonPointerString != EMPTY_POINTER {
+		p.hasFragment = strings.HasPrefix(jsonPointerString, FRAGMENT)
+		if !strings.HasPrefix(jsonPointerString, POINTER_SEPARATOR) && !p.hasFragment {
 			err = errors.New(INVALID_START)
 		} else {
-			referenceTokens := strings.Split(p.stringRepresentation, POINTER_SEPARATOR)
+			referenceTokens := strings.Split(jsonPointerString, POINTER_SEPARATOR)
 			for _, referenceToken := range referenceTokens[1:] {
 				p.referenceTokens = append(p.referenceTokens, decodeReferenceToken(referenceToken))
 			}
@@ -51,7 +51,19 @@ func (p *JsonPointer) parse(jsonPointerString string) error {
 }
 
 func (p *JsonPointer) String() string {
-	return p.stringRepresentation
+
+	tokens := p.referenceTokens
+	for i := range tokens {
+		tokens[i] = encodeReferenceToken(tokens[i])
+	}
+
+	pointerString := strings.Join(tokens, POINTER_SEPARATOR)
+
+	if p.hasFragment {
+		return FRAGMENT + pointerString
+	}
+
+	return pointerString
 }
 
 const (
