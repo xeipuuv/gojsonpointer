@@ -51,6 +51,11 @@ func (p *JsonPointer) parse(jsonPointerString string) error {
 	return err
 }
 
+func (p *JsonPointer) Get(document interface{}) interface{} {
+
+	return nil
+}
+
 func (p *JsonPointer) String() string {
 
 	tokens := p.referenceTokens
