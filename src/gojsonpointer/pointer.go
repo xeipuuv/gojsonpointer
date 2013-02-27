@@ -55,8 +55,6 @@ func (p *JsonPointer) parse(jsonPointerString string) error {
 
 func (p *JsonPointer) Get(document interface{}) (interface{}, error) {
 
-	fmt.Printf("%s\n", p.String())
-
 	if len(p.referenceTokens) == 0 {
 		return document, nil
 	}
@@ -64,7 +62,6 @@ func (p *JsonPointer) Get(document interface{}) (interface{}, error) {
 	node := document
 
 	for _, token := range p.referenceTokens {
-		fmt.Printf("%s\n", token)
 
 		rValue := reflect.ValueOf(node)
 		kind := rValue.Kind()
@@ -82,8 +79,6 @@ func (p *JsonPointer) Get(document interface{}) (interface{}, error) {
 		default:
 			return nil, errors.New(fmt.Sprintf("Unhandled kind %s in JsonPointer.Get", kind))
 		}
-
-		fmt.Printf("%s\n", node)
 
 	}
 
