@@ -7,6 +7,7 @@ package gojsonpointer
 import (
 	"errors"
 	"strings"
+	"fmt"
 )
 
 const (
@@ -53,6 +54,10 @@ func (p *JsonPointer) parse(jsonPointerString string) error {
 
 func (p *JsonPointer) Get(document interface{}) interface{} {
 
+	for _, v := range p.referenceTokens {
+		fmt.Printf("%s\n", v)
+	}
+
 	return nil
 }
 
@@ -66,7 +71,7 @@ func (p *JsonPointer) String() string {
 	pointerString := strings.Join(tokens, POINTER_SEPARATOR)
 
 	if p.hasFragment {
-		return FRAGMENT + pointerString
+		return FRAGMENT + POINTER_SEPARATOR + pointerString
 	}
 
 	return pointerString
