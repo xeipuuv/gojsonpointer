@@ -6,8 +6,9 @@ package gojsonpointer
 
 import (
 	"errors"
-	"strings"
 	"fmt"
+	"reflect"
+	"strings"
 )
 
 const (
@@ -52,13 +53,41 @@ func (p *JsonPointer) parse(jsonPointerString string) error {
 	return err
 }
 
-func (p *JsonPointer) Get(document interface{}) interface{} {
+func (p *JsonPointer) Get(document interface{}) (interface{}, error) {
 
-	for _, v := range p.referenceTokens {
-		fmt.Printf("%s\n", v)
+	fmt.Printf("%s\n", p.String())
+
+	if len(p.referenceTokens) == 0 {
+		return document, nil
 	}
 
-	return nil
+	node := document
+
+	for _, token := range p.referenceTokens {
+		fmt.Printf("%s\n", token)
+
+		rValue := reflect.ValueOf(node)
+		kind := rValue.Kind()
+
+		switch kind {
+
+		case reflect.Map:
+			m := node.(map[string]interface{})
+			if _, ok := m[token]; ok {
+				node = m[token]
+			} else {
+				return nil, errors.New("No value found using this pointer")
+			}
+
+		default:
+			return nil, errors.New(fmt.Sprintf("Unhandled kind %s in JsonPointer.Get", kind))
+		}
+
+		fmt.Printf("%s\n", node)
+
+	}
+
+	return node, nil
 }
 
 func (p *JsonPointer) String() string {
