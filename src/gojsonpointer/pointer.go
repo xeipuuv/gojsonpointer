@@ -1,6 +1,13 @@
-// @author       sigu-399
-// @description  An implementation of JSON Pointer - Go language
-// @created      25-02-2013
+// author  			sigu-399
+// author-github 	https://github.com/sigu-399
+// author-mail		sigu.399@gmail.com
+// 
+// repository-name	gojsonpointer
+// repository-desc	An implementation of JSON Pointer - Go language
+// 
+// description		Main and unique file.
+// 
+// created      	25-02-2013
 
 package gojsonpointer
 
