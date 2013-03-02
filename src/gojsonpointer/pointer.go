@@ -22,9 +22,8 @@ import (
 const (
 	EMPTY_POINTER     = ``
 	POINTER_SEPARATOR = `/`
-	FRAGMENT          = `#`
 
-	INVALID_START = `JSON pointer must be empty, start with a "` + POINTER_SEPARATOR + `" or a "` + FRAGMENT + `"`
+	INVALID_START = `JSON pointer must be empty or start with a "` + POINTER_SEPARATOR
 )
 
 func NewJsonPointer(jsonPointerString string) (JsonPointer, error) {
@@ -36,7 +35,6 @@ func NewJsonPointer(jsonPointerString string) (JsonPointer, error) {
 }
 
 type JsonPointer struct {
-	hasFragment     bool
 	referenceTokens []string
 }
 
@@ -46,8 +44,7 @@ func (p *JsonPointer) parse(jsonPointerString string) error {
 	var err error
 
 	if jsonPointerString != EMPTY_POINTER {
-		p.hasFragment = strings.HasPrefix(jsonPointerString, FRAGMENT)
-		if !strings.HasPrefix(jsonPointerString, POINTER_SEPARATOR) && !p.hasFragment {
+		if !strings.HasPrefix(jsonPointerString, POINTER_SEPARATOR) {
 			err = errors.New(INVALID_START)
 		} else {
 			referenceTokens := strings.Split(jsonPointerString, POINTER_SEPARATOR)
@@ -97,7 +94,7 @@ func (p *JsonPointer) Get(document interface{}) (interface{}, reflect.Kind, erro
 			if tokenIndex < 0 || tokenIndex >= sLength {
 				return nil, kind, errors.New(fmt.Sprintf("Out of bound array[0,%d] index '%d'", tokenIndex, sLength))
 			}
-			
+
 			node = s[tokenIndex]
 
 		default:
@@ -115,16 +112,16 @@ func (p *JsonPointer) Get(document interface{}) (interface{}, reflect.Kind, erro
 // Pointer to string representation function
 func (p *JsonPointer) String() string {
 
+	if len(p.referenceTokens) == 0 {
+		return EMPTY_POINTER
+	}
+
 	tokens := p.referenceTokens
 	for i := range tokens {
 		tokens[i] = encodeReferenceToken(tokens[i])
 	}
 
-	pointerString := strings.Join(tokens, POINTER_SEPARATOR)
-
-	if p.hasFragment {
-		return FRAGMENT + POINTER_SEPARATOR + pointerString
-	}
+	pointerString := POINTER_SEPARATOR + strings.Join(tokens, POINTER_SEPARATOR)
 
 	return pointerString
 }

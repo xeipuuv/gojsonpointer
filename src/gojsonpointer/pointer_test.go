@@ -42,7 +42,7 @@ func init() {
 
 func TestEscaping(t *testing.T) {
 
-	ins := []string{`#/`, `/`, `#/a~1b`, `/a~1b`, `/c%d`, `/e^f`, `/g|h`, `/i\j`, `/k"l`, `/ `, `/m~0n`}
+	ins := []string{`/`, `/`, `/a~1b`, `/a~1b`, `/c%d`, `/e^f`, `/g|h`, `/i\j`, `/k"l`, `/ `, `/m~0n`}
 	outs := []float64{0, 0, 1, 1, 2, 3, 4, 5, 6, 7, 8}
 
 	for i := range ins {
@@ -102,10 +102,9 @@ func TestGetNode(t *testing.T) {
 	}
 }
 
-
 func TestArray(t *testing.T) {
 
-	ins := []string{`#/foo/0`, `/foo/0`, `/foo/1`}
+	ins := []string{`/foo/0`, `/foo/0`, `/foo/1`}
 	outs := []string{"bar", "bar", "baz"}
 
 	for i := range ins {
@@ -129,7 +128,7 @@ func TestArray(t *testing.T) {
 
 func TestObject(t *testing.T) {
 
-	ins := []string{`/obj/a`, `/obj/b`, `/obj/c/0`, `/obj/c/1`, `#/obj/c/1`, `#/obj/d/1/f/0`}
+	ins := []string{`/obj/a`, `/obj/b`, `/obj/c/0`, `/obj/c/1`, `/obj/c/1`, `/obj/d/1/f/0`}
 	outs := []float64{1, 2, 3, 4, 4, 50}
 
 	for i := range ins {
