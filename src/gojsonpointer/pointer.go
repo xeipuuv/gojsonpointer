@@ -61,10 +61,12 @@ func (p *JsonPointer) parse(jsonPointerString string) error {
 	return err
 }
 
-func (p *JsonPointer) Get(document interface{}) (interface{}, error) {
+func (p *JsonPointer) Get(document interface{}) (interface{}, reflect.Kind, error) {
+
+	kind := reflect.Invalid
 
 	if len(p.referenceTokens) == 0 {
-		return document, nil
+		return document, kind, nil
 	}
 
 	node := document
@@ -72,7 +74,7 @@ func (p *JsonPointer) Get(document interface{}) (interface{}, error) {
 	for _, token := range p.referenceTokens {
 
 		rValue := reflect.ValueOf(node)
-		kind := rValue.Kind()
+		kind = rValue.Kind()
 
 		switch kind {
 
@@ -81,28 +83,31 @@ func (p *JsonPointer) Get(document interface{}) (interface{}, error) {
 			if _, ok := m[token]; ok {
 				node = m[token]
 			} else {
-				return nil, errors.New(fmt.Sprintf("Object has no key '%s'", token))
+				return nil, kind, errors.New(fmt.Sprintf("Object has no key '%s'", token))
 			}
 
 		case reflect.Slice:
 			s := node.([]interface{})
 			tokenIndex, err := strconv.Atoi(token)
 			if err != nil {
-				return nil, errors.New(fmt.Sprintf("Invalid array index '%s'", token))
+				return nil, kind, errors.New(fmt.Sprintf("Invalid array index '%s'", token))
 			}
 			sLength := len(s)
 			if tokenIndex < 0 || tokenIndex >= sLength {
-				return nil, errors.New(fmt.Sprintf("Out of bound array[0,%d] index '%d'", tokenIndex, sLength))
+				return nil, kind, errors.New(fmt.Sprintf("Out of bound array[0,%d] index '%d'", tokenIndex, sLength))
 			}
-			return s[tokenIndex], nil
+			return s[tokenIndex], kind, nil
 
 		default:
-			return nil, errors.New(fmt.Sprintf("Unhandled kind %s in JsonPointer.Get", kind))
+			return nil, kind, errors.New(fmt.Sprintf("Invalid token reference '%s'", token))
 		}
 
 	}
 
-	return node, nil
+	rValue := reflect.ValueOf(node)
+	kind = rValue.Kind()
+
+	return node, kind, nil
 }
 
 func (p *JsonPointer) String() string {
