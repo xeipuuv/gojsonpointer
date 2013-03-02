@@ -18,10 +18,10 @@ import (
 
 const (
 	TEST_DOCUMENT_NB_ELEMENTS = 11
-	TEST_NODE_OBJ_NB_ELEMENTS = 3
+	TEST_NODE_OBJ_NB_ELEMENTS = 4
 	TEST_DOCUMENT_STRING      = `{
 "foo": ["bar", "baz"],
-"obj": { "a":1, "b":2, "c":[3,4] },
+"obj": { "a":1, "b":2, "c":[3,4], "d":[ {"e":9}, {"f":[50,51]} ] },
 "": 0,
 "a/b": 1,
 "c%d": 2,
@@ -129,8 +129,8 @@ func TestArray(t *testing.T) {
 
 func TestObject(t *testing.T) {
 
-	ins := []string{`/obj/a`, `/obj/b`, `/obj/c/0`, `/obj/c/1`, `#/obj/c/1`}
-	outs := []float64{1, 2, 3, 4, 4}
+	ins := []string{`/obj/a`, `/obj/b`, `/obj/c/0`, `/obj/c/1`, `#/obj/c/1`, `#/obj/d/1/f/0`}
+	outs := []float64{1, 2, 3, 4, 4, 50}
 
 	for i := range ins {
 
