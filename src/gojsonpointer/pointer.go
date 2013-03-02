@@ -15,6 +15,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"strconv"
 	"strings"
 )
 
@@ -80,8 +81,20 @@ func (p *JsonPointer) Get(document interface{}) (interface{}, error) {
 			if _, ok := m[token]; ok {
 				node = m[token]
 			} else {
-				return nil, errors.New("No value found using this pointer")
+				return nil, errors.New(fmt.Sprintf("Object has no key '%s'", token))
 			}
+
+		case reflect.Slice:
+			s := node.([]interface{})
+			tokenIndex, err := strconv.Atoi(token)
+			if err != nil {
+				return nil, errors.New(fmt.Sprintf("Invalid array index '%s'", token))
+			}
+			sLength := len(s)
+			if tokenIndex < 0 || tokenIndex >= sLength {
+				return nil, errors.New(fmt.Sprintf("Out of bound array[0,%d] index '%d'", tokenIndex, sLength))
+			}
+			return s[tokenIndex], nil
 
 		default:
 			return nil, errors.New(fmt.Sprintf("Unhandled kind %s in JsonPointer.Get", kind))
