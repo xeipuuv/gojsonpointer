@@ -23,9 +23,7 @@ const (
 	EMPTY_POINTER     = ``
 	POINTER_SEPARATOR = `/`
 	FRAGMENT          = `#`
-)
 
-const (
 	INVALID_START = `JSON pointer must be empty, start with a "` + POINTER_SEPARATOR + `" or a "` + FRAGMENT + `"`
 )
 
@@ -42,6 +40,7 @@ type JsonPointer struct {
 	referenceTokens []string
 }
 
+// "Constructor", parses the given string JSON pointer
 func (p *JsonPointer) parse(jsonPointerString string) error {
 
 	var err error
@@ -61,10 +60,12 @@ func (p *JsonPointer) parse(jsonPointerString string) error {
 	return err
 }
 
+// Uses the pointer to retrieve a value from a JSON document
 func (p *JsonPointer) Get(document interface{}) (interface{}, reflect.Kind, error) {
 
 	kind := reflect.Invalid
 
+	// Full document when empty
 	if len(p.referenceTokens) == 0 {
 		return document, kind, nil
 	}
@@ -96,7 +97,8 @@ func (p *JsonPointer) Get(document interface{}) (interface{}, reflect.Kind, erro
 			if tokenIndex < 0 || tokenIndex >= sLength {
 				return nil, kind, errors.New(fmt.Sprintf("Out of bound array[0,%d] index '%d'", tokenIndex, sLength))
 			}
-			return s[tokenIndex], kind, nil
+			
+			node = s[tokenIndex]
 
 		default:
 			return nil, kind, errors.New(fmt.Sprintf("Invalid token reference '%s'", token))
@@ -110,6 +112,7 @@ func (p *JsonPointer) Get(document interface{}) (interface{}, reflect.Kind, erro
 	return node, kind, nil
 }
 
+// Pointer to string representation function
 func (p *JsonPointer) String() string {
 
 	tokens := p.referenceTokens
@@ -125,6 +128,11 @@ func (p *JsonPointer) String() string {
 
 	return pointerString
 }
+
+// Specific JSON pointer encoding here
+// ~0 => ~ 
+// ~1 => / 
+// ... and vice versa 
 
 const (
 	ENCODED_REFERENCE_TOKEN_0 = `~0`
