@@ -18,6 +18,7 @@ import (
 
 const (
 	TEST_DOCUMENT_NB_ELEMENTS = 11
+	TEST_NODE_OBJ_NB_ELEMENTS = 3
 	TEST_DOCUMENT_STRING      = `{
 "foo": ["bar", "baz"],
 "obj": { "a":1, "b":2, "c":[3,4] },
@@ -81,6 +82,26 @@ func TestFullDocument(t *testing.T) {
 		t.Errorf("Get(%v) = %v, expect full document", in, result)
 	}
 }
+
+func TestGetNode(t *testing.T) {
+
+	in := `/obj`
+
+	p, err := NewJsonPointer(in)
+	if err != nil {
+		t.Errorf("NewJsonPointer(%v) error %v", in, err.Error())
+	}
+
+	result, _, err := p.Get(testDocumentJson)
+	if err != nil {
+		t.Errorf("Get(%v) error %v", in, err.Error())
+	}
+
+	if len(result.(map[string]interface{})) != TEST_NODE_OBJ_NB_ELEMENTS {
+		t.Errorf("Get(%v) = %v, expect full document", in, result)
+	}
+}
+
 
 func TestArray(t *testing.T) {
 
