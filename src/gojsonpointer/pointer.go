@@ -20,10 +20,10 @@ import (
 )
 
 const (
-	EMPTY_POINTER     = ``
-	POINTER_SEPARATOR = `/`
+	const_empty_pointer     = ``
+	const_pointer_separator = `/`
 
-	INVALID_START = `JSON pointer must be empty or start with a "` + POINTER_SEPARATOR
+	const_invalid_start = `JSON pointer must be empty or start with a "` + const_pointer_separator
 )
 
 func NewJsonPointer(jsonPointerString string) (JsonPointer, error) {
@@ -43,11 +43,11 @@ func (p *JsonPointer) parse(jsonPointerString string) error {
 
 	var err error
 
-	if jsonPointerString != EMPTY_POINTER {
-		if !strings.HasPrefix(jsonPointerString, POINTER_SEPARATOR) {
-			err = errors.New(INVALID_START)
+	if jsonPointerString != const_empty_pointer {
+		if !strings.HasPrefix(jsonPointerString, const_pointer_separator) {
+			err = errors.New(const_invalid_start)
 		} else {
-			referenceTokens := strings.Split(jsonPointerString, POINTER_SEPARATOR)
+			referenceTokens := strings.Split(jsonPointerString, const_pointer_separator)
 			for _, referenceToken := range referenceTokens[1:] {
 				p.referenceTokens = append(p.referenceTokens, decodeReferenceToken(referenceToken))
 			}
@@ -113,7 +113,7 @@ func (p *JsonPointer) Get(document interface{}) (interface{}, reflect.Kind, erro
 func (p *JsonPointer) String() string {
 
 	if len(p.referenceTokens) == 0 {
-		return EMPTY_POINTER
+		return const_empty_pointer
 	}
 
 	tokens := p.referenceTokens
@@ -121,7 +121,7 @@ func (p *JsonPointer) String() string {
 		tokens[i] = encodeReferenceToken(tokens[i])
 	}
 
-	pointerString := POINTER_SEPARATOR + strings.Join(tokens, POINTER_SEPARATOR)
+	pointerString := const_pointer_separator + strings.Join(tokens, const_pointer_separator)
 
 	return pointerString
 }
@@ -132,20 +132,20 @@ func (p *JsonPointer) String() string {
 // ... and vice versa 
 
 const (
-	ENCODED_REFERENCE_TOKEN_0 = `~0`
-	ENCODED_REFERENCE_TOKEN_1 = `~1`
-	DECODED_REFERENCE_TOKEN_0 = `~`
-	DECODED_REFERENCE_TOKEN_1 = `/`
+	const_encoded_reference_token_0 = `~0`
+	const_encoded_reference_token_1 = `~1`
+	const_decoded_reference_token_0 = `~`
+	const_decoded_reference_token_1 = `/`
 )
 
 func decodeReferenceToken(token string) string {
-	step1 := strings.Replace(token, ENCODED_REFERENCE_TOKEN_1, DECODED_REFERENCE_TOKEN_1, -1)
-	step2 := strings.Replace(step1, ENCODED_REFERENCE_TOKEN_0, DECODED_REFERENCE_TOKEN_0, -1)
+	step1 := strings.Replace(token, const_encoded_reference_token_1, const_decoded_reference_token_1, -1)
+	step2 := strings.Replace(step1, const_encoded_reference_token_0, const_decoded_reference_token_0, -1)
 	return step2
 }
 
 func encodeReferenceToken(token string) string {
-	step1 := strings.Replace(token, DECODED_REFERENCE_TOKEN_1, ENCODED_REFERENCE_TOKEN_1, -1)
-	step2 := strings.Replace(step1, DECODED_REFERENCE_TOKEN_0, ENCODED_REFERENCE_TOKEN_0, -1)
+	step1 := strings.Replace(token, const_decoded_reference_token_1, const_encoded_reference_token_1, -1)
+	step2 := strings.Replace(step1, const_decoded_reference_token_0, const_encoded_reference_token_0, -1)
 	return step2
 }
