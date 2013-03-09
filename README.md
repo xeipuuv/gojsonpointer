@@ -2,7 +2,7 @@
 An implementation of JSON Pointer - Go language
 
 ## Status
-Completed YES
+Completed ( 90% Done ) - Missing some minor details
 
 Tested ( 50% )
 
