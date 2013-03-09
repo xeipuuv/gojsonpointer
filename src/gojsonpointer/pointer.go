@@ -26,6 +26,20 @@ const (
 	const_invalid_start = `JSON pointer must be empty or start with a "` + const_pointer_separator
 )
 
+type implStruct struct {
+	mode string // "SET" or "GET"
+
+	inDocument interface{}
+
+	setInValue interface{}
+
+	getOutNode interface{}
+	getOutKind reflect.Kind
+
+	setOutDocument interface{}
+	outError       error
+}
+
 func NewJsonPointer(jsonPointerString string) (JsonPointer, error) {
 
 	var p JsonPointer
@@ -60,16 +74,41 @@ func (p *JsonPointer) parse(jsonPointerString string) error {
 // Uses the pointer to retrieve a value from a JSON document
 func (p *JsonPointer) Get(document interface{}) (interface{}, reflect.Kind, error) {
 
+	is := &implStruct{mode: "GET", inDocument: document}
+	p.implementation(is)
+	return is.getOutNode, is.getOutKind, is.outError
+
+}
+
+// Uses the pointer to update a value from a JSON document
+func (p *JsonPointer) Set(document interface{}, value interface{}) (interface{}, error) {
+
+	is := &implStruct{mode: "SET", inDocument: document, setInValue: value}
+	p.implementation(is)
+	return is.setOutDocument, is.outError
+
+}
+
+func (p *JsonPointer) implementation(i *implStruct) {
+
 	kind := reflect.Invalid
 
 	// Full document when empty
 	if len(p.referenceTokens) == 0 {
-		return document, kind, nil
+		i.getOutNode = i.inDocument
+		i.outError = nil
+		i.getOutKind = kind
+
+		i.setOutDocument = i.setInValue
+		i.outError = nil
+		return
 	}
 
-	node := document
+	node := i.inDocument
 
-	for _, token := range p.referenceTokens {
+	for ti, token := range p.referenceTokens {
+
+		isLastToken := ti == len(p.referenceTokens)-1
 
 		rValue := reflect.ValueOf(node)
 		kind = rValue.Kind()
@@ -80,25 +119,47 @@ func (p *JsonPointer) Get(document interface{}) (interface{}, reflect.Kind, erro
 			m := node.(map[string]interface{})
 			if _, ok := m[token]; ok {
 				node = m[token]
+				if isLastToken && i.mode == "SET" {
+					m[token] = i.setInValue
+				}
 			} else {
-				return nil, kind, errors.New(fmt.Sprintf("Object has no key '%s'", token))
+				i.outError = errors.New(fmt.Sprintf("Object has no key '%s'", token))
+				i.getOutKind = kind
+				i.getOutNode = nil
+				i.setOutDocument = nil
+				return
 			}
 
 		case reflect.Slice:
 			s := node.([]interface{})
 			tokenIndex, err := strconv.Atoi(token)
 			if err != nil {
-				return nil, kind, errors.New(fmt.Sprintf("Invalid array index '%s'", token))
+				i.outError = errors.New(fmt.Sprintf("Invalid array index '%s'", token))
+				i.getOutKind = kind
+				i.getOutNode = nil
+				i.setOutDocument = nil
+				return
 			}
 			sLength := len(s)
 			if tokenIndex < 0 || tokenIndex >= sLength {
-				return nil, kind, errors.New(fmt.Sprintf("Out of bound array[0,%d] index '%d'", tokenIndex, sLength))
+				i.outError = errors.New(fmt.Sprintf("Out of bound array[0,%d] index '%d'", tokenIndex, sLength))
+				i.getOutKind = kind
+				i.getOutNode = nil
+				i.setOutDocument = nil
+				return
 			}
 
 			node = s[tokenIndex]
+			if isLastToken && i.mode == "SET" {
+				s[tokenIndex] = i.setInValue
+			}
 
 		default:
-			return nil, kind, errors.New(fmt.Sprintf("Invalid token reference '%s'", token))
+			i.outError = errors.New(fmt.Sprintf("Invalid token reference '%s'", token))
+			i.getOutKind = kind
+			i.getOutNode = nil
+			i.setOutDocument = nil
+			return
 		}
 
 	}
@@ -106,7 +167,10 @@ func (p *JsonPointer) Get(document interface{}) (interface{}, reflect.Kind, erro
 	rValue := reflect.ValueOf(node)
 	kind = rValue.Kind()
 
-	return node, kind, nil
+	i.getOutNode = node
+	i.getOutKind = kind
+	i.outError = nil
+	i.setOutDocument = i.inDocument
 }
 
 // Pointer to string representation function
