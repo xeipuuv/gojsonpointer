@@ -1,7 +1,7 @@
 PACKAGE
 
 package gojsonpointer
-    import "gojsonpointer"
+    import "/Users/mac/Documents/workspace/gojsonpointer/src/gojsonpointer"
 
 
 TYPES
@@ -14,6 +14,9 @@ func NewJsonPointer(jsonPointerString string) (JsonPointer, error)
 
 func (p *JsonPointer) Get(document interface{}) (interface{}, reflect.Kind, error)
     Uses the pointer to retrieve a value from a JSON document
+
+func (p *JsonPointer) Set(document interface{}, value interface{}) (interface{}, error)
+    Uses the pointer to update a value from a JSON document
 
 func (p *JsonPointer) String() string
     Pointer to string representation function
