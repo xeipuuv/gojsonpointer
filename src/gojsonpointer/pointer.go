@@ -87,6 +87,7 @@ func (p *JsonPointer) Set(document interface{}, value interface{}) (interface{},
 
 }
 
+// Both Get and Set functions use the same implementation to avoid code duplication
 func (p *JsonPointer) implementation(i *implStruct) {
 
 	kind := reflect.Invalid
