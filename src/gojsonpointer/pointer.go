@@ -35,8 +35,6 @@ type implStruct struct {
 
 	getOutNode interface{}
 	getOutKind reflect.Kind
-
-	setOutDocument interface{}
 	outError       error
 }
 
@@ -85,7 +83,7 @@ func (p *JsonPointer) Set(document interface{}, value interface{}) (interface{},
 
 	is := &implStruct{mode: "SET", inDocument: document, setInValue: value}
 	p.implementation(is)
-	return is.setOutDocument, is.outError
+	return document, is.outError
 
 }
 
@@ -98,8 +96,6 @@ func (p *JsonPointer) implementation(i *implStruct) {
 		i.getOutNode = i.inDocument
 		i.outError = nil
 		i.getOutKind = kind
-
-		i.setOutDocument = i.setInValue
 		i.outError = nil
 		return
 	}
@@ -126,7 +122,6 @@ func (p *JsonPointer) implementation(i *implStruct) {
 				i.outError = errors.New(fmt.Sprintf("Object has no key '%s'", token))
 				i.getOutKind = kind
 				i.getOutNode = nil
-				i.setOutDocument = nil
 				return
 			}
 
@@ -137,7 +132,6 @@ func (p *JsonPointer) implementation(i *implStruct) {
 				i.outError = errors.New(fmt.Sprintf("Invalid array index '%s'", token))
 				i.getOutKind = kind
 				i.getOutNode = nil
-				i.setOutDocument = nil
 				return
 			}
 			sLength := len(s)
@@ -145,7 +139,6 @@ func (p *JsonPointer) implementation(i *implStruct) {
 				i.outError = errors.New(fmt.Sprintf("Out of bound array[0,%d] index '%d'", tokenIndex, sLength))
 				i.getOutKind = kind
 				i.getOutNode = nil
-				i.setOutDocument = nil
 				return
 			}
 
@@ -158,7 +151,6 @@ func (p *JsonPointer) implementation(i *implStruct) {
 			i.outError = errors.New(fmt.Sprintf("Invalid token reference '%s'", token))
 			i.getOutKind = kind
 			i.getOutNode = nil
-			i.setOutDocument = nil
 			return
 		}
 
@@ -170,7 +162,6 @@ func (p *JsonPointer) implementation(i *implStruct) {
 	i.getOutNode = node
 	i.getOutKind = kind
 	i.outError = nil
-	i.setOutDocument = i.inDocument
 }
 
 // Pointer to string representation function
