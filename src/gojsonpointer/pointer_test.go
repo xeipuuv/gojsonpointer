@@ -149,3 +149,43 @@ func TestObject(t *testing.T) {
 	}
 
 }
+
+func TestSetNode(t *testing.T) {
+
+	jsonText := `{"a":[{"b": 1, "c": 2}], "d": 3}`
+
+	var jsonDocument interface{}
+	json.Unmarshal([]byte(jsonText), &jsonDocument)
+
+	in := "/a/0/c"
+
+	p, err := NewJsonPointer(in)
+	if err != nil {
+		t.Errorf("NewJsonPointer(%v) error %v", in, err.Error())
+	}
+
+	_, err = p.Set(jsonDocument, 999)
+	if err != nil {
+		t.Errorf("Set(%v) error %v", in, err.Error())
+	}
+
+	firstNode := jsonDocument.(map[string]interface{})
+	if len(firstNode) != 2 {
+		t.Errorf("Set(%s) failed", in)
+	}
+
+	sliceNode := firstNode["a"].([]interface{})
+	if len(sliceNode) != 1 {
+		t.Errorf("Set(%s) failed", in)
+	}
+
+	changedNode := sliceNode[0].(map[string]interface{})
+	changedNodeValue := changedNode["c"].(int)
+
+	if changedNodeValue != 999 {
+		if len(sliceNode) != 1 {
+			t.Errorf("Set(%s) failed", in)
+		}
+	}
+
+}
