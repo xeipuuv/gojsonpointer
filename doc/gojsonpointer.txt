@@ -1,7 +1,7 @@
 PACKAGE
 
 package gojsonpointer
-    import "/Users/mac/Documents/workspace/gojsonpointer/src/gojsonpointer"
+    import "encoding/json/jsonpointer"
 
 
 TYPES
