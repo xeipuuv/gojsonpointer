@@ -9,7 +9,7 @@
 // 
 // created      	25-02-2013
 
-package gojsonpointer
+package jsonpointer
 
 import (
 	"errors"
@@ -35,7 +35,7 @@ type implStruct struct {
 
 	getOutNode interface{}
 	getOutKind reflect.Kind
-	outError       error
+	outError   error
 }
 
 func NewJsonPointer(jsonPointerString string) (JsonPointer, error) {
