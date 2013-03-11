@@ -9,7 +9,7 @@
 // 
 // created      	03-03-2013
 
-package gojsonpointer
+package jsonpointer
 
 import (
 	"encoding/json"
