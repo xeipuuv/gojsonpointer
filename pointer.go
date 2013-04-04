@@ -23,7 +23,7 @@
 // 
 // created      	25-02-2013
 
-package jsonpointer
+package gojsonpointer
 
 import (
 	"errors"
