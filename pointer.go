@@ -15,12 +15,12 @@
 // author  			sigu-399
 // author-github 	https://github.com/sigu-399
 // author-mail		sigu.399@gmail.com
-// 
+//
 // repository-name	gojsonpointer
 // repository-desc	An implementation of JSON Pointer - Go language
-// 
+//
 // description		Main and unique file.
-// 
+//
 // created      	25-02-2013
 
 package gojsonpointer
@@ -75,7 +75,7 @@ func (p *JsonPointer) parse(jsonPointerString string) error {
 		} else {
 			referenceTokens := strings.Split(jsonPointerString, const_pointer_separator)
 			for _, referenceToken := range referenceTokens[1:] {
-				p.referenceTokens = append(p.referenceTokens, decodeReferenceToken(referenceToken))
+				p.referenceTokens = append(p.referenceTokens, referenceToken)
 			}
 		}
 	}
@@ -119,6 +119,7 @@ func (p *JsonPointer) implementation(i *implStruct) {
 
 	for ti, token := range p.referenceTokens {
 
+		decodedToken := decodeReferenceToken(token)
 		isLastToken := ti == len(p.referenceTokens)-1
 
 		rValue := reflect.ValueOf(node)
@@ -128,10 +129,10 @@ func (p *JsonPointer) implementation(i *implStruct) {
 
 		case reflect.Map:
 			m := node.(map[string]interface{})
-			if _, ok := m[token]; ok {
-				node = m[token]
+			if _, ok := m[decodedToken]; ok {
+				node = m[decodedToken]
 				if isLastToken && i.mode == "SET" {
-					m[token] = i.setInValue
+					m[decodedToken] = i.setInValue
 				}
 			} else {
 				i.outError = errors.New(fmt.Sprintf("Object has no key '%s'", token))
@@ -186,20 +187,15 @@ func (p *JsonPointer) String() string {
 		return const_empty_pointer
 	}
 
-	tokens := p.referenceTokens
-	for i := range tokens {
-		tokens[i] = encodeReferenceToken(tokens[i])
-	}
-
-	pointerString := const_pointer_separator + strings.Join(tokens, const_pointer_separator)
+	pointerString := const_pointer_separator + strings.Join(p.referenceTokens, const_pointer_separator)
 
 	return pointerString
 }
 
 // Specific JSON pointer encoding here
-// ~0 => ~ 
-// ~1 => / 
-// ... and vice versa 
+// ~0 => ~
+// ~1 => /
+// ... and vice versa
 
 const (
 	const_encoded_reference_token_0 = `~0`
