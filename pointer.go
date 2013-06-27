@@ -152,7 +152,7 @@ func (p *JsonPointer) implementation(i *implStruct) {
 			}
 			sLength := len(s)
 			if tokenIndex < 0 || tokenIndex >= sLength {
-				i.outError = errors.New(fmt.Sprintf("Out of bound array[0,%d] index '%d'", tokenIndex, sLength))
+				i.outError = errors.New(fmt.Sprintf("Out of bound array[0,%d] index '%d'", sLength, tokenIndex))
 				i.getOutKind = kind
 				i.getOutNode = nil
 				return
