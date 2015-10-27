@@ -84,6 +84,34 @@ func TestEscaping(t *testing.T) {
 
 }
 
+func BenchmarkParse(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		NewJsonPointer(`/definitions/simple/0/next`)
+	}
+}
+
+func BenchmarkParseWithEscape(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		NewJsonPointer(`/definiti~0ons/simple/0/next`)
+	}
+}
+
+func BenchmarkString(b *testing.B) {
+	p, _ := NewJsonPointer(`/definitions/simple/0/next`)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		p.String()
+	}
+}
+
+func BenchmarkStringWithEscape(b *testing.B) {
+	p, _ := NewJsonPointer(`/definiti~0ons/simple/0/next`)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		p.String()
+	}
+}
+
 func TestFullDocument(t *testing.T) {
 
 	in := ``
@@ -119,6 +147,14 @@ func TestGetNode(t *testing.T) {
 
 	if len(result.(map[string]interface{})) != TEST_NODE_OBJ_NB_ELEMENTS {
 		t.Errorf("Get(%v) = %v, expect full document", in, result)
+	}
+}
+
+func BenchmarkGet(b *testing.B) {
+	p, _ := NewJsonPointer(`/obj/d/1/f`)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		p.Get(testDocumentJson)
 	}
 }
 
