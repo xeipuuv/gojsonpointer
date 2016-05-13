@@ -119,19 +119,19 @@ func (p *JsonPointer) implementation(i *implStruct) {
 
 	for ti, token := range p.referenceTokens {
 
-		decodedToken := decodeReferenceToken(token)
 		isLastToken := ti == len(p.referenceTokens)-1
 
 		switch v := node.(type) {
 
 		case map[string]interface{}:
+			decodedToken := decodeReferenceToken(token)
 			if _, ok := v[decodedToken]; ok {
 				node = v[decodedToken]
 				if isLastToken && i.mode == "SET" {
 					v[decodedToken] = i.setInValue
 				}
 			} else {
-				i.outError = errors.New(fmt.Sprintf("Object has no key '%s'", token))
+				i.outError = errors.New(fmt.Sprintf("Object has no key '%s'", decodedToken))
 				i.getOutKind = reflect.Map
 				i.getOutNode = nil
 				return
