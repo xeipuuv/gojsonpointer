@@ -122,61 +122,52 @@ func (p *JsonPointer) implementation(i *implStruct) {
 		decodedToken := decodeReferenceToken(token)
 		isLastToken := ti == len(p.referenceTokens)-1
 
-		rValue := reflect.ValueOf(node)
-		kind = rValue.Kind()
+		switch v := node.(type) {
 
-		switch kind {
-
-		case reflect.Map:
-			m := node.(map[string]interface{})
-			if _, ok := m[decodedToken]; ok {
-				node = m[decodedToken]
+		case map[string]interface{}:
+			if _, ok := v[decodedToken]; ok {
+				node = v[decodedToken]
 				if isLastToken && i.mode == "SET" {
-					m[decodedToken] = i.setInValue
+					v[decodedToken] = i.setInValue
 				}
 			} else {
 				i.outError = errors.New(fmt.Sprintf("Object has no key '%s'", token))
-				i.getOutKind = kind
+				i.getOutKind = reflect.Map
 				i.getOutNode = nil
 				return
 			}
 
-		case reflect.Slice:
-			s := node.([]interface{})
+		case []interface{}:
 			tokenIndex, err := strconv.Atoi(token)
 			if err != nil {
 				i.outError = errors.New(fmt.Sprintf("Invalid array index '%s'", token))
-				i.getOutKind = kind
+				i.getOutKind = reflect.Slice
 				i.getOutNode = nil
 				return
 			}
-			sLength := len(s)
-			if tokenIndex < 0 || tokenIndex >= sLength {
-				i.outError = errors.New(fmt.Sprintf("Out of bound array[0,%d] index '%d'", sLength, tokenIndex))
-				i.getOutKind = kind
+			if tokenIndex < 0 || tokenIndex >= len(v) {
+				i.outError = errors.New(fmt.Sprintf("Out of bound array[0,%d] index '%d'", len(v), tokenIndex))
+				i.getOutKind = reflect.Slice
 				i.getOutNode = nil
 				return
 			}
 
-			node = s[tokenIndex]
+			node = v[tokenIndex]
 			if isLastToken && i.mode == "SET" {
-				s[tokenIndex] = i.setInValue
+				v[tokenIndex] = i.setInValue
 			}
 
 		default:
 			i.outError = errors.New(fmt.Sprintf("Invalid token reference '%s'", token))
-			i.getOutKind = kind
+			i.getOutKind = reflect.ValueOf(node).Kind()
 			i.getOutNode = nil
 			return
 		}
 
 	}
 
-	rValue := reflect.ValueOf(node)
-	kind = rValue.Kind()
-
 	i.getOutNode = node
-	i.getOutKind = kind
+	i.getOutKind = reflect.ValueOf(node).Kind()
 	i.outError = nil
 }
 
