@@ -131,7 +131,7 @@ func (p *JsonPointer) implementation(i *implStruct) {
 					v[decodedToken] = i.setInValue
 				}
 			} else {
-				i.outError = errors.New(fmt.Sprintf("Object has no key '%s'", decodedToken))
+				i.outError = fmt.Errorf("Object has no key '%s'", decodedToken)
 				i.getOutKind = reflect.Map
 				i.getOutNode = nil
 				return
@@ -140,13 +140,13 @@ func (p *JsonPointer) implementation(i *implStruct) {
 		case []interface{}:
 			tokenIndex, err := strconv.Atoi(token)
 			if err != nil {
-				i.outError = errors.New(fmt.Sprintf("Invalid array index '%s'", token))
+				i.outError = fmt.Errorf("Invalid array index '%s'", token)
 				i.getOutKind = reflect.Slice
 				i.getOutNode = nil
 				return
 			}
 			if tokenIndex < 0 || tokenIndex >= len(v) {
-				i.outError = errors.New(fmt.Sprintf("Out of bound array[0,%d] index '%d'", len(v), tokenIndex))
+				i.outError = fmt.Errorf("Out of bound array[0,%d] index '%d'", len(v), tokenIndex)
 				i.getOutKind = reflect.Slice
 				i.getOutNode = nil
 				return
@@ -158,7 +158,7 @@ func (p *JsonPointer) implementation(i *implStruct) {
 			}
 
 		default:
-			i.outError = errors.New(fmt.Sprintf("Invalid token reference '%s'", token))
+			i.outError = fmt.Errorf("Invalid token reference '%s'", token)
 			i.getOutKind = reflect.ValueOf(node).Kind()
 			i.getOutNode = nil
 			return
