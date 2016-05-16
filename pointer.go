@@ -52,32 +52,24 @@ type implStruct struct {
 	outError   error
 }
 
-func NewJsonPointer(jsonPointerString string) (JsonPointer, error) {
-
-	var p JsonPointer
-	err := p.parse(jsonPointerString)
-	return p, err
-
-}
-
 type JsonPointer struct {
 	referenceTokens []string
 }
 
-// "Constructor", parses the given string JSON pointer
-func (p *JsonPointer) parse(jsonPointerString string) error {
+// NewJsonPointer parses the given string JSON pointer and returns an object
+func NewJsonPointer(jsonPointerString string) (p JsonPointer, err error) {
 
 	// Pointer to the root of the document
 	if len(jsonPointerString) == 0 {
 		// Keep referenceTokens nil
-		return nil
+		return
 	}
 	if jsonPointerString[0] != '/' {
-		return errors.New(const_invalid_start)
+		return p, errors.New(const_invalid_start)
 	}
 
 	p.referenceTokens = strings.Split(jsonPointerString[1:], const_pointer_separator)
-	return nil
+	return
 }
 
 // Uses the pointer to retrieve a value from a JSON document
