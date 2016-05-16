@@ -73,10 +73,7 @@ func (p *JsonPointer) parse(jsonPointerString string) error {
 		if !strings.HasPrefix(jsonPointerString, const_pointer_separator) {
 			err = errors.New(const_invalid_start)
 		} else {
-			referenceTokens := strings.Split(jsonPointerString, const_pointer_separator)
-			for _, referenceToken := range referenceTokens[1:] {
-				p.referenceTokens = append(p.referenceTokens, referenceToken)
-			}
+			p.referenceTokens = strings.Split(jsonPointerString[1:], const_pointer_separator)
 		}
 	}
 
