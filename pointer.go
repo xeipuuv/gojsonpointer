@@ -179,19 +179,17 @@ func (p *JsonPointer) String() string {
 
 const (
 	const_encoded_reference_token_0 = `~0`
-	const_encoded_reference_token_1 = `~1`
 	const_decoded_reference_token_0 = `~`
-	const_decoded_reference_token_1 = `/`
 )
 
 func decodeReferenceToken(token string) string {
-	step1 := strings.Replace(token, const_encoded_reference_token_1, const_decoded_reference_token_1, -1)
+	step1 := strings.Replace(token, `~1`, `/`, -1)
 	step2 := strings.Replace(step1, const_encoded_reference_token_0, const_decoded_reference_token_0, -1)
 	return step2
 }
 
 func encodeReferenceToken(token string) string {
-	step1 := strings.Replace(token, const_decoded_reference_token_1, const_encoded_reference_token_1, -1)
+	step1 := strings.Replace(token, `/`, `~1`, -1)
 	step2 := strings.Replace(step1, const_decoded_reference_token_0, const_encoded_reference_token_0, -1)
 	return step2
 }
