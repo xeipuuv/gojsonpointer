@@ -67,17 +67,17 @@ type JsonPointer struct {
 // "Constructor", parses the given string JSON pointer
 func (p *JsonPointer) parse(jsonPointerString string) error {
 
-	var err error
-
-	if jsonPointerString != const_empty_pointer {
-		if !strings.HasPrefix(jsonPointerString, const_pointer_separator) {
-			err = errors.New(const_invalid_start)
-		} else {
-			p.referenceTokens = strings.Split(jsonPointerString[1:], const_pointer_separator)
-		}
+	// Pointer to the root of the document
+	if len(jsonPointerString) == 0 {
+		// Keep referenceTokens nil
+		return nil
+	}
+	if jsonPointerString[0] != '/' {
+		return errors.New(const_invalid_start)
 	}
 
-	return err
+	p.referenceTokens = strings.Split(jsonPointerString[1:], const_pointer_separator)
+	return nil
 }
 
 // Uses the pointer to retrieve a value from a JSON document
