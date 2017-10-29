@@ -245,3 +245,43 @@ func TestSetNode(t *testing.T) {
 	}
 
 }
+
+func TestDelMapNode(t *testing.T) {
+	jsonText := `{
+		"a":[{"b": 1, "c": 2}],
+		"d": {
+			"z" : {
+				"v" : {
+					"name" : "donald mcbobble",
+					"occupation" : "corporate overlord"
+				}
+			}
+		}
+	}`
+
+	var jsonDocument map[string]interface{}
+	json.Unmarshal([]byte(jsonText), &jsonDocument)
+
+	in := "/d/z/v/occupation"
+	p, err := NewJsonPointer(in)
+	if err != nil {
+		t.Errorf("NewJsonPointer(%v) error %v", in, err.Error())
+	}
+
+	_, _, err = p.Delete(jsonDocument)
+	if err != nil {
+		t.Errorf("Delete(%v) error %v", in, err.Error())
+	}
+
+	var d map[string]interface{} = jsonDocument["d"].(map[string]interface{})
+	var z map[string]interface{} = d["z"].(map[string]interface{})
+	var v map[string]interface{} = z["v"].(map[string]interface{})
+
+	if v["name"] != "donald mcbobble" {
+		t.Errorf("Delete (%s) failed: caused an unexpected side effect")
+	}
+
+	if _, present := v["occupation"]; present {
+		t.Errorf("Delete (%s) failed: key is still present in the map", in)
+	}
+}
