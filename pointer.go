@@ -91,10 +91,10 @@ func (p *JsonPointer) Set(document interface{}, value interface{}) (interface{},
 }
 
 // Uses the pointer to delete a value from a JSON document (only works on maps/objects right now, not arrays)
-func (p *JsonPointer) Delete(document interface{}) (interface{}, reflect.Kind, error) {
+func (p *JsonPointer) Delete(document interface{}) (interface{}, error) {
 	is := &implStruct{mode: "DEL", inDocument: document}
 	p.implementation(is)
-	return is.getOutNode, is.getOutKind, is.outError
+	return document, is.outError
 }
 
 // Both Get and Set functions use the same implementation to avoid code duplication

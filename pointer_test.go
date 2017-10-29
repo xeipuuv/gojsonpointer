@@ -268,7 +268,7 @@ func TestDelMapNode(t *testing.T) {
 		t.Errorf("NewJsonPointer(%v) error %v", in, err.Error())
 	}
 
-	_, _, err = p.Delete(jsonDocument)
+	_,  err = p.Delete(jsonDocument)
 	if err != nil {
 		t.Errorf("Delete(%v) error %v", in, err.Error())
 	}
