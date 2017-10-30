@@ -25,7 +25,7 @@ An implementation of JSON Pointer - Go language
     title, _, _ := pointer.Get(jsonDocument)
     fmt.Println(title) //outputs "Supreme Leader of Westeros"
     
-    //DELETE the "heir" from the document (only works on maps for now, not arrays)
+    //DELETE the "heir" from the document
     deletePointer := NewJsonPointer("/occupation/heir")
     deletePointer.Delete(jsonDocument)
     
