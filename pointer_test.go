@@ -246,6 +246,32 @@ func TestSetNode(t *testing.T) {
 
 }
 
+func TestSetEmptyNode(t *testing.T) {
+
+	jsonText := `{}`
+
+	var jsonDocument interface{}
+	json.Unmarshal([]byte(jsonText), &jsonDocument)
+
+	in := "/a"
+
+	p, err := NewJsonPointer(in)
+	if err != nil {
+		t.Errorf("NewJsonPointer(%v) error %v", in, err.Error())
+	}
+
+	_, err = p.Set(jsonDocument, 999)
+	if err != nil {
+		t.Errorf("Set(%v) error %v", in, err.Error())
+	}
+
+	firstNode := jsonDocument.(map[string]interface{})
+	target := firstNode["a"].(int)
+	if target != 999 {
+		t.Errorf("Set(%s) failed", in)
+	}
+}
+
 func TestDelObject(t *testing.T) {
 	jsonText := `{
 		"a":["apple sauce", "ketchup", "soy sauce"],

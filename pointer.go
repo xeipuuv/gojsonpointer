@@ -133,6 +133,8 @@ func (p *JsonPointer) implementation(i *implStruct) {
 				} else if isLastToken && i.mode =="DEL" {
 					delete(v,decodedToken)
 				}
+			} else if (isLastToken && i.mode == "SET") {
+				v[decodedToken] = i.setInValue
 			} else {
 				i.outError = fmt.Errorf("Object has no key '%s'", decodedToken)
 				i.getOutKind = reflect.Map
