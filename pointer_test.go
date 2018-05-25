@@ -28,6 +28,8 @@ package gojsonpointer
 import (
 	"encoding/json"
 	"testing"
+
+	"gopkg.in/mgo.v2/bson"
 )
 
 const (
@@ -204,6 +206,52 @@ func TestObject(t *testing.T) {
 		}
 	}
 
+}
+
+func TestBsonD(t *testing.T) {
+
+	testDocumentBson := bson.D{
+		{"foo", []interface{}{"bar", "baz"}},
+		{"obj", bson.D{
+			{"a", 1},
+			{"b", 2},
+			{"c", []interface{}{3, 4}},
+			{"d", []interface{}{
+				bson.D{{"e", 9}},
+				bson.D{{"f", []interface{}{50, 51}}},
+			}},
+		}},
+		{"", 0},
+		{"a/b", 1},
+		{"c%d", 2},
+		{"e^f", 3},
+		{"g|h", 4},
+		{"i\\j", 5},
+		{"k\"l", 6},
+		{" ", 7},
+		{"m~n", 8},
+		{"o~/p", 9},
+		{"q/~r", 10},
+	}
+
+	ins := []string{`/obj/a`, `/obj/b`, `/obj/c/0`, `/obj/c/1`, `/obj/c/1`, `/obj/d/1/f/0`}
+	outs := []int{1, 2, 3, 4, 4, 50}
+
+	for i := range ins {
+		p, err := NewJsonPointer(ins[i])
+		if err != nil {
+			t.Errorf("NewJsonPointer(%v) error %v", ins[i], err.Error())
+		}
+
+		result, _, err := p.Get(testDocumentBson)
+		if err != nil {
+			t.Errorf("Get(%v) error %v", ins[i], err.Error())
+		}
+
+		if result != outs[i] {
+			t.Errorf("Get(%v) = %v, expect %v", ins[i], result, outs[i])
+		}
+	}
 }
 
 func TestSetNode(t *testing.T) {

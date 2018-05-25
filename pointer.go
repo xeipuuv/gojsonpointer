@@ -31,6 +31,8 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+
+	"gopkg.in/mgo.v2/bson"
 )
 
 const (
@@ -135,6 +137,18 @@ func (p *JsonPointer) implementation(i *implStruct) {
 				}
 			} else if isLastToken && i.mode == "SET" {
 				v[decodedToken] = i.setInValue
+			} else {
+				i.outError = fmt.Errorf("Object has no key '%s'", decodedToken)
+				i.getOutKind = reflect.Map
+				i.getOutNode = nil
+				return
+			}
+
+		case bson.D:
+			decodedToken := decodeReferenceToken(token)
+			nodeMap := v.Map()
+			if _, ok := nodeMap[decodedToken]; ok {
+				node = nodeMap[decodedToken]
 			} else {
 				i.outError = fmt.Errorf("Object has no key '%s'", decodedToken)
 				i.getOutKind = reflect.Map
