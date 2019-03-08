@@ -32,7 +32,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/mongodb/mongo-go-driver/bson"
+	"go.mongodb.org/mongo-driver/bson"
 	mgobson "gopkg.in/mgo.v2/bson"
 )
 
