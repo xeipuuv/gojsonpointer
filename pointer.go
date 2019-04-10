@@ -33,7 +33,6 @@ import (
 	"strings"
 
 	"go.mongodb.org/mongo-driver/bson"
-	mgobson "gopkg.in/mgo.v2/bson"
 )
 
 const (
@@ -146,18 +145,6 @@ func (p *JsonPointer) implementation(i *implStruct) {
 			}
 
 		case bson.D:
-			decodedToken := decodeReferenceToken(token)
-			nodeMap := v.Map()
-			if _, ok := nodeMap[decodedToken]; ok {
-				node = nodeMap[decodedToken]
-			} else {
-				i.outError = fmt.Errorf("Object has no key '%s'", decodedToken)
-				i.getOutKind = reflect.Map
-				i.getOutNode = nil
-				return
-			}
-
-		case mgobson.D:
 			decodedToken := decodeReferenceToken(token)
 			nodeMap := v.Map()
 			if _, ok := nodeMap[decodedToken]; ok {
