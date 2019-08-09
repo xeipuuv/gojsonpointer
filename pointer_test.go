@@ -295,7 +295,7 @@ func TestDelObject(t *testing.T) {
 		t.Errorf("NewJsonPointer(%v) error %v", in, err.Error())
 	}
 
-	_,  err = p.Delete(jsonDocument)
+	_, err = p.Delete(jsonDocument)
 	if err != nil {
 		t.Errorf("Delete(%v) error %v", in, err.Error())
 	}
@@ -308,7 +308,6 @@ func TestDelObject(t *testing.T) {
 		t.Errorf("Delete (%s) failed: key is still present in the map", in)
 	}
 }
-
 
 func TestDelArray(t *testing.T) {
 	jsonText := `{
@@ -334,7 +333,7 @@ func TestDelArray(t *testing.T) {
 		t.Errorf("NewJsonPointer(%v) error %v", in, err.Error())
 	}
 
-	_,  err = p.Delete(jsonDocument)
+	_, err = p.Delete(jsonDocument)
 	if err != nil {
 		t.Errorf("Delete(%v) error %v", in, err.Error())
 	}
