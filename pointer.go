@@ -129,7 +129,13 @@ func (p *JsonPointer) implementation(i *implStruct) {
 			if _, ok := v[decodedToken]; ok {
 				node = v[decodedToken]
 				if isLastToken && i.mode == "SET" {
-					v[decodedToken] = i.setInValue
+					switch nodeVal := node.(type) {
+					case []interface{}:
+						nodeVal = append(nodeVal, i.setInValue)
+						v[decodedToken] = nodeVal
+					default:
+						v[decodedToken] = i.setInValue
+					}
 				} else if isLastToken && i.mode == "DEL" {
 					delete(v, decodedToken)
 				}
