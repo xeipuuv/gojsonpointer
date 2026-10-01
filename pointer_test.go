@@ -27,6 +27,7 @@ package gojsonpointer
 
 import (
 	"encoding/json"
+	"reflect"
 	"testing"
 )
 
@@ -343,4 +344,248 @@ func TestDelArray(t *testing.T) {
 		t.Errorf("Delete(%v) error (%s)", in, a)
 	}
 
+}
+
+type testBar struct {
+	Number float64
+}
+
+type testDocument struct {
+	Foo testBar
+}
+
+type testTaggedBar struct {
+	Number float64 `json:"number"`
+}
+
+type testTaggedDocument struct {
+	Foo    testTaggedBar            `json:"foo"`
+	Items  []testTaggedBar          `json:"items"`
+	Map    map[string]testTaggedBar `json:"map"`
+	PtrBar *testTaggedBar           `json:"ptr_bar"`
+	secret string
+}
+
+type testStringerKey string
+
+func (k testStringerKey) String() string {
+	return string(k)
+}
+
+type testEmbeddedBase struct {
+	ID string `json:"id"`
+}
+
+type testEmbeddedDoc struct {
+	testEmbeddedBase
+	Name string `json:"name"`
+}
+
+func TestStructDocument(t *testing.T) {
+	// Issue #8 example
+	doc := testDocument{
+		Foo: testBar{
+			Number: 42.0,
+		},
+	}
+
+	p, err := NewJsonPointer("/Foo/Number")
+	if err != nil {
+		t.Fatalf("NewJsonPointer failed: %v", err)
+	}
+
+	val, kind, err := p.Get(doc)
+	if err != nil {
+		t.Fatalf("Get failed: %v", err)
+	}
+	if kind != reflect.Float64 || val != 42.0 {
+		t.Errorf("Expected 42.0 (float64), got %v (%v)", val, kind)
+	}
+
+	// Pointer to struct root
+	valPtr, kindPtr, err := p.Get(&doc)
+	if err != nil {
+		t.Fatalf("Get on pointer to struct failed: %v", err)
+	}
+	if kindPtr != reflect.Float64 || valPtr != 42.0 {
+		t.Errorf("Expected 42.0 (float64), got %v (%v)", valPtr, kindPtr)
+	}
+
+	// Get struct field directly
+	pFoo, _ := NewJsonPointer("/Foo")
+	valFoo, kindFoo, err := pFoo.Get(doc)
+	if err != nil {
+		t.Fatalf("Get /Foo failed: %v", err)
+	}
+	if kindFoo != reflect.Struct || valFoo.(testBar).Number != 42.0 {
+		t.Errorf("Expected testBar{Number: 42.0}, got %v", valFoo)
+	}
+}
+
+func TestStructWithJsonTags(t *testing.T) {
+	doc := testTaggedDocument{
+		Foo:    testTaggedBar{Number: 100.5},
+		secret: "hidden",
+	}
+
+	// Match by JSON tag
+	pTag, _ := NewJsonPointer("/foo/number")
+	val, _, err := pTag.Get(doc)
+	if err != nil {
+		t.Fatalf("Get(/foo/number) failed: %v", err)
+	}
+	if val != 100.5 {
+		t.Errorf("Expected 100.5, got %v", val)
+	}
+
+	// Match by struct field name
+	pField, _ := NewJsonPointer("/Foo/Number")
+	valField, _, err := pField.Get(doc)
+	if err != nil {
+		t.Fatalf("Get(/Foo/Number) failed: %v", err)
+	}
+	if valField != 100.5 {
+		t.Errorf("Expected 100.5, got %v", valField)
+	}
+
+	// Unexported field should not be accessible
+	pSecret, _ := NewJsonPointer("/secret")
+	_, _, err = pSecret.Get(doc)
+	if err == nil {
+		t.Errorf("Expected error accessing unexported field, got nil")
+	}
+
+	// Non-existent field
+	pNonExist, _ := NewJsonPointer("/non_existent")
+	_, _, err = pNonExist.Get(doc)
+	if err == nil {
+		t.Errorf("Expected error for non-existent field, got nil")
+	}
+}
+
+func TestStructSet(t *testing.T) {
+	doc := testDocument{
+		Foo: testBar{
+			Number: 10.0,
+		},
+	}
+
+	p, _ := NewJsonPointer("/Foo/Number")
+
+	// Set on pointer to struct
+	_, err := p.Set(&doc, 99.0)
+	if err != nil {
+		t.Fatalf("Set failed: %v", err)
+	}
+	if doc.Foo.Number != 99.0 {
+		t.Errorf("Expected 99.0, got %v", doc.Foo.Number)
+	}
+
+	// Set on non-pointer struct should fail
+	_, err = p.Set(doc, 123.0)
+	if err == nil {
+		t.Errorf("Expected error setting on non-pointer struct, got nil")
+	}
+}
+
+func TestStructComplexTypes(t *testing.T) {
+	doc := testTaggedDocument{
+		Foo: testTaggedBar{Number: 1.0},
+		Items: []testTaggedBar{
+			{Number: 10.0},
+			{Number: 20.0},
+		},
+		Map: map[string]testTaggedBar{
+			"first": {Number: 30.0},
+		},
+		PtrBar: &testTaggedBar{Number: 40.0},
+	}
+
+	// Struct -> Slice -> Struct
+	pSlice, _ := NewJsonPointer("/items/1/number")
+	valSlice, _, err := pSlice.Get(doc)
+	if err != nil {
+		t.Fatalf("Get(/items/1/number) failed: %v", err)
+	}
+	if valSlice != 20.0 {
+		t.Errorf("Expected 20.0, got %v", valSlice)
+	}
+
+	// Struct -> Map -> Struct
+	pMap, _ := NewJsonPointer("/map/first/number")
+	valMap, _, err := pMap.Get(doc)
+	if err != nil {
+		t.Fatalf("Get(/map/first/number) failed: %v", err)
+	}
+	if valMap != 30.0 {
+		t.Errorf("Expected 30.0, got %v", valMap)
+	}
+
+	// Struct -> Pointer to Struct
+	pPtr, _ := NewJsonPointer("/ptr_bar/number")
+	valPtr, _, err := pPtr.Get(doc)
+	if err != nil {
+		t.Fatalf("Get(/ptr_bar/number) failed: %v", err)
+	}
+	if valPtr != 40.0 {
+		t.Errorf("Expected 40.0, got %v", valPtr)
+	}
+
+	// Mutate through pointer
+	_, err = pPtr.Set(&doc, 88.0)
+	if err != nil {
+		t.Fatalf("Set(/ptr_bar/number) failed: %v", err)
+	}
+	if doc.PtrBar.Number != 88.0 {
+		t.Errorf("Expected 88.0, got %v", doc.PtrBar.Number)
+	}
+}
+
+func TestMapStringerKey(t *testing.T) {
+	m := map[testStringerKey]int{
+		testStringerKey("apple"):  1,
+		testStringerKey("banana"): 2,
+	}
+
+	p, _ := NewJsonPointer("/banana")
+	val, _, err := p.Get(m)
+	if err != nil {
+		t.Fatalf("Get(/banana) failed: %v", err)
+	}
+	if val != 2 {
+		t.Errorf("Expected 2, got %v", val)
+	}
+
+	_, err = p.Set(m, 42)
+	if err != nil {
+		t.Fatalf("Set(/banana) failed: %v", err)
+	}
+	if m[testStringerKey("banana")] != 42 {
+		t.Errorf("Expected 42, got %v", m[testStringerKey("banana")])
+	}
+}
+
+func TestEmbeddedStruct(t *testing.T) {
+	doc := testEmbeddedDoc{
+		testEmbeddedBase: testEmbeddedBase{ID: "base-123"},
+		Name:             "test-user",
+	}
+
+	pID, _ := NewJsonPointer("/id")
+	valID, _, err := pID.Get(doc)
+	if err != nil {
+		t.Fatalf("Get(/id) failed: %v", err)
+	}
+	if valID != "base-123" {
+		t.Errorf("Expected 'base-123', got %v", valID)
+	}
+
+	pName, _ := NewJsonPointer("/name")
+	valName, _, err := pName.Get(doc)
+	if err != nil {
+		t.Fatalf("Get(/name) failed: %v", err)
+	}
+	if valName != "test-user" {
+		t.Errorf("Expected 'test-user', got %v", valName)
+	}
 }

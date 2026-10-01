@@ -26,6 +26,7 @@
 package gojsonpointer
 
 import (
+	"encoding"
 	"errors"
 	"fmt"
 	"reflect"
@@ -168,10 +169,225 @@ func (p *JsonPointer) implementation(i *implStruct) {
 			}
 
 		default:
-			i.outError = fmt.Errorf("Invalid token reference '%s'", token)
-			i.getOutKind = reflect.ValueOf(node).Kind()
-			i.getOutNode = nil
-			return
+			if node == nil {
+				i.outError = fmt.Errorf("Invalid token reference '%s'", token)
+				i.getOutKind = reflect.Invalid
+				i.getOutNode = nil
+				return
+			}
+
+			rValue := reflect.ValueOf(node)
+			for rValue.IsValid() && (rValue.Kind() == reflect.Ptr || rValue.Kind() == reflect.Interface) {
+				if rValue.IsNil() {
+					i.outError = fmt.Errorf("Invalid token reference '%s'", token)
+					i.getOutKind = rValue.Kind()
+					i.getOutNode = nil
+					return
+				}
+				rValue = rValue.Elem()
+			}
+
+			if !rValue.IsValid() {
+				i.outError = fmt.Errorf("Invalid token reference '%s'", token)
+				i.getOutKind = reflect.Invalid
+				i.getOutNode = nil
+				return
+			}
+
+			switch rValue.Kind() {
+
+			case reflect.Struct:
+				decodedToken := decodeReferenceToken(token)
+				fieldVal, ok := findStructField(rValue, decodedToken)
+				if !ok {
+					i.outError = fmt.Errorf("Object has no key '%s'", decodedToken)
+					i.getOutKind = reflect.Struct
+					i.getOutNode = nil
+					return
+				}
+
+				if isLastToken && i.mode == "SET" {
+					if !fieldVal.CanSet() {
+						i.outError = fmt.Errorf("Field '%s' cannot be set", decodedToken)
+						return
+					}
+					valToSet := reflect.ValueOf(i.setInValue)
+					if !valToSet.IsValid() {
+						fieldVal.Set(reflect.Zero(fieldVal.Type()))
+					} else if valToSet.Type().AssignableTo(fieldVal.Type()) {
+						fieldVal.Set(valToSet)
+					} else if valToSet.Type().ConvertibleTo(fieldVal.Type()) {
+						fieldVal.Set(valToSet.Convert(fieldVal.Type()))
+					} else if fieldVal.Kind() == reflect.Ptr && valToSet.Type().AssignableTo(fieldVal.Type().Elem()) {
+						if fieldVal.IsNil() {
+							fieldVal.Set(reflect.New(fieldVal.Type().Elem()))
+						}
+						fieldVal.Elem().Set(valToSet)
+					} else if fieldVal.Kind() == reflect.Ptr && valToSet.Type().ConvertibleTo(fieldVal.Type().Elem()) {
+						if fieldVal.IsNil() {
+							fieldVal.Set(reflect.New(fieldVal.Type().Elem()))
+						}
+						fieldVal.Elem().Set(valToSet.Convert(fieldVal.Type().Elem()))
+					} else {
+						i.outError = fmt.Errorf("Cannot assign %s to field %s of type %s", valToSet.Type(), decodedToken, fieldVal.Type())
+						return
+					}
+					node = fieldVal.Interface()
+				} else if isLastToken && i.mode == "DEL" {
+					i.outError = fmt.Errorf("Struct field '%s' cannot be deleted", decodedToken)
+					i.getOutKind = reflect.Struct
+					i.getOutNode = nil
+					return
+				} else {
+					if i.mode == "SET" && fieldVal.CanAddr() {
+						node = fieldVal.Addr().Interface()
+					} else {
+						node = fieldVal.Interface()
+					}
+				}
+
+			case reflect.Map:
+				decodedToken := decodeReferenceToken(token)
+				mapType := rValue.Type()
+				keyType := mapType.Key()
+				var matchedKey reflect.Value
+
+				tokenVal := reflect.ValueOf(decodedToken)
+				if tokenVal.Type().AssignableTo(keyType) {
+					matchedKey = tokenVal
+				} else if tokenVal.Type().ConvertibleTo(keyType) {
+					matchedKey = tokenVal.Convert(keyType)
+				} else {
+					for _, k := range rValue.MapKeys() {
+						if tm, ok := k.Interface().(encoding.TextMarshaler); ok {
+							if text, err := tm.MarshalText(); err == nil && string(text) == decodedToken {
+								matchedKey = k
+								break
+							}
+						} else if stringer, ok := k.Interface().(fmt.Stringer); ok {
+							if stringer.String() == decodedToken {
+								matchedKey = k
+								break
+							}
+						} else if fmt.Sprint(k.Interface()) == decodedToken {
+							matchedKey = k
+							break
+						}
+					}
+				}
+
+				var mapVal reflect.Value
+				if matchedKey.IsValid() {
+					mapVal = rValue.MapIndex(matchedKey)
+				}
+
+				if mapVal.IsValid() {
+					node = mapVal.Interface()
+					if isLastToken && i.mode == "SET" {
+						valToSet := reflect.ValueOf(i.setInValue)
+						if !valToSet.IsValid() {
+							rValue.SetMapIndex(matchedKey, reflect.Zero(mapType.Elem()))
+						} else if valToSet.Type().AssignableTo(mapType.Elem()) {
+							rValue.SetMapIndex(matchedKey, valToSet)
+						} else if valToSet.Type().ConvertibleTo(mapType.Elem()) {
+							rValue.SetMapIndex(matchedKey, valToSet.Convert(mapType.Elem()))
+						} else {
+							i.outError = fmt.Errorf("Cannot assign %s to map value of type %s", valToSet.Type(), mapType.Elem())
+							return
+						}
+					} else if isLastToken && i.mode == "DEL" {
+						rValue.SetMapIndex(matchedKey, reflect.Value{})
+					}
+				} else if isLastToken && i.mode == "SET" {
+					if matchedKey.IsValid() {
+						valToSet := reflect.ValueOf(i.setInValue)
+						if !valToSet.IsValid() {
+							rValue.SetMapIndex(matchedKey, reflect.Zero(mapType.Elem()))
+						} else if valToSet.Type().AssignableTo(mapType.Elem()) {
+							rValue.SetMapIndex(matchedKey, valToSet)
+						} else if valToSet.Type().ConvertibleTo(mapType.Elem()) {
+							rValue.SetMapIndex(matchedKey, valToSet.Convert(mapType.Elem()))
+						} else {
+							i.outError = fmt.Errorf("Cannot assign %s to map value of type %s", valToSet.Type(), mapType.Elem())
+							return
+						}
+					} else if tokenVal.Type().AssignableTo(keyType) {
+						valToSet := reflect.ValueOf(i.setInValue)
+						if !valToSet.IsValid() {
+							rValue.SetMapIndex(tokenVal, reflect.Zero(mapType.Elem()))
+						} else if valToSet.Type().AssignableTo(mapType.Elem()) {
+							rValue.SetMapIndex(tokenVal, valToSet)
+						} else if valToSet.Type().ConvertibleTo(mapType.Elem()) {
+							rValue.SetMapIndex(tokenVal, valToSet.Convert(mapType.Elem()))
+						} else {
+							i.outError = fmt.Errorf("Cannot assign %s to map value of type %s", valToSet.Type(), mapType.Elem())
+							return
+						}
+					} else {
+						i.outError = fmt.Errorf("Object has no key '%s'", decodedToken)
+						i.getOutKind = reflect.Map
+						i.getOutNode = nil
+						return
+					}
+				} else {
+					i.outError = fmt.Errorf("Object has no key '%s'", decodedToken)
+					i.getOutKind = reflect.Map
+					i.getOutNode = nil
+					return
+				}
+
+			case reflect.Slice, reflect.Array:
+				tokenIndex, err := strconv.Atoi(token)
+				if err != nil {
+					i.outError = fmt.Errorf("Invalid array index '%s'", token)
+					i.getOutKind = rValue.Kind()
+					i.getOutNode = nil
+					return
+				}
+				if tokenIndex < 0 || tokenIndex >= rValue.Len() {
+					i.outError = fmt.Errorf("Out of bound array[0,%d] index '%d'", rValue.Len(), tokenIndex)
+					i.getOutKind = rValue.Kind()
+					i.getOutNode = nil
+					return
+				}
+
+				elemVal := rValue.Index(tokenIndex)
+				if isLastToken && i.mode == "SET" {
+					if !elemVal.CanSet() {
+						i.outError = fmt.Errorf("Array index '%d' cannot be set", tokenIndex)
+						return
+					}
+					valToSet := reflect.ValueOf(i.setInValue)
+					if !valToSet.IsValid() {
+						elemVal.Set(reflect.Zero(elemVal.Type()))
+					} else if valToSet.Type().AssignableTo(elemVal.Type()) {
+						elemVal.Set(valToSet)
+					} else if valToSet.Type().ConvertibleTo(elemVal.Type()) {
+						elemVal.Set(valToSet.Convert(elemVal.Type()))
+					} else {
+						i.outError = fmt.Errorf("Cannot assign %s to array element of type %s", valToSet.Type(), elemVal.Type())
+						return
+					}
+					node = elemVal.Interface()
+				} else if isLastToken && i.mode == "DEL" {
+					i.outError = fmt.Errorf("Delete not supported on %s", rValue.Kind())
+					i.getOutKind = rValue.Kind()
+					i.getOutNode = nil
+					return
+				} else {
+					if i.mode == "SET" && elemVal.CanAddr() {
+						node = elemVal.Addr().Interface()
+					} else {
+						node = elemVal.Interface()
+					}
+				}
+
+			default:
+				i.outError = fmt.Errorf("Invalid token reference '%s'", token)
+				i.getOutKind = rValue.Kind()
+				i.getOutNode = nil
+				return
+			}
 		}
 
 	}
@@ -208,4 +424,61 @@ func encodeReferenceToken(token string) string {
 	step1 := strings.Replace(token, `~`, `~0`, -1)
 	step2 := strings.Replace(step1, `/`, `~1`, -1)
 	return step2
+}
+
+func findStructField(structVal reflect.Value, token string) (reflect.Value, bool) {
+	structType := structVal.Type()
+	var caseInsensitiveMatch reflect.Value
+	hasCaseInsensitiveMatch := false
+
+	for i := 0; i < structType.NumField(); i++ {
+		field := structType.Field(i)
+		if field.PkgPath != "" {
+			continue
+		}
+
+		jsonTag := field.Tag.Get("json")
+		if jsonTag == "-" {
+			continue
+		}
+
+		fieldName := field.Name
+		jsonName := ""
+		if jsonTag != "" {
+			parts := strings.Split(jsonTag, ",")
+			jsonName = parts[0]
+		}
+
+		if (jsonName != "" && jsonName == token) || fieldName == token {
+			return structVal.Field(i), true
+		}
+
+		if !hasCaseInsensitiveMatch {
+			if (jsonName != "" && strings.EqualFold(jsonName, token)) || strings.EqualFold(fieldName, token) {
+				caseInsensitiveMatch = structVal.Field(i)
+				hasCaseInsensitiveMatch = true
+			}
+		}
+	}
+
+	if hasCaseInsensitiveMatch {
+		return caseInsensitiveMatch, true
+	}
+
+	for i := 0; i < structType.NumField(); i++ {
+		field := structType.Field(i)
+		if field.Anonymous {
+			fieldVal := structVal.Field(i)
+			for fieldVal.Kind() == reflect.Ptr && !fieldVal.IsNil() {
+				fieldVal = fieldVal.Elem()
+			}
+			if fieldVal.Kind() == reflect.Struct {
+				if f, ok := findStructField(fieldVal, token); ok {
+					return f, true
+				}
+			}
+		}
+	}
+
+	return reflect.Value{}, false
 }
