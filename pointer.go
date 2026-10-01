@@ -86,7 +86,7 @@ func (p *JsonPointer) Set(document interface{}, value interface{}) (interface{},
 
 	is := &implStruct{mode: "SET", inDocument: document, setInValue: value}
 	p.implementation(is)
-	return document, is.outError
+	return is.inDocument, is.outError
 
 }
 
@@ -94,7 +94,7 @@ func (p *JsonPointer) Set(document interface{}, value interface{}) (interface{},
 func (p *JsonPointer) Delete(document interface{}) (interface{}, error) {
 	is := &implStruct{mode: "DEL", inDocument: document}
 	p.implementation(is)
-	return document, is.outError
+	return is.inDocument, is.outError
 }
 
 // Both Get and Set functions use the same implementation to avoid code duplication
@@ -143,14 +143,49 @@ func (p *JsonPointer) implementation(i *implStruct) {
 			}
 
 		case []interface{}:
-			tokenIndex, err := strconv.Atoi(token)
-			if err != nil {
-				i.outError = fmt.Errorf("Invalid array index '%s'", token)
+			tokenIndex := -1
+			var err error
+			if token != "-" {
+				tokenIndex, err = strconv.Atoi(token)
+				if err != nil {
+					i.outError = fmt.Errorf("Invalid array index '%s'", token)
+					i.getOutKind = reflect.Slice
+					i.getOutNode = nil
+					return
+				}
+				if tokenIndex < 0 {
+					i.outError = fmt.Errorf("Out of bound array[0,%d] index '%d'", len(v), tokenIndex)
+					i.getOutKind = reflect.Slice
+					i.getOutNode = nil
+					return
+				}
+			}
+
+			if isLastToken && i.mode == "SET" && (token == "-" || tokenIndex == len(v)) {
+				v = append(v, i.setInValue)
+				if ti == 0 {
+					i.inDocument = v
+				} else {
+					switch parent := previousNodes[ti-1].(type) {
+					case map[string]interface{}:
+						parent[decodeReferenceToken(previousTokens[ti-1])] = v
+					case []interface{}:
+						prevIdx, _ := strconv.Atoi(previousTokens[ti-1])
+						parent[prevIdx] = v
+					}
+				}
+				node = i.setInValue
+				continue
+			}
+
+			if token == "-" {
+				i.outError = fmt.Errorf("Out of bound array[0,%d] index '%s'", len(v), token)
 				i.getOutKind = reflect.Slice
 				i.getOutNode = nil
 				return
 			}
-			if tokenIndex < 0 || tokenIndex >= len(v) {
+
+			if tokenIndex >= len(v) {
 				i.outError = fmt.Errorf("Out of bound array[0,%d] index '%d'", len(v), tokenIndex)
 				i.getOutKind = reflect.Slice
 				i.getOutNode = nil
@@ -164,7 +199,17 @@ func (p *JsonPointer) implementation(i *implStruct) {
 				v[tokenIndex] = v[len(v)-1]
 				v[len(v)-1] = nil
 				v = v[:len(v)-1]
-				previousNodes[ti-1].(map[string]interface{})[previousTokens[ti-1]] = v
+				if ti == 0 {
+					i.inDocument = v
+				} else {
+					switch parent := previousNodes[ti-1].(type) {
+					case map[string]interface{}:
+						parent[decodeReferenceToken(previousTokens[ti-1])] = v
+					case []interface{}:
+						prevIdx, _ := strconv.Atoi(previousTokens[ti-1])
+						parent[prevIdx] = v
+					}
+				}
 			}
 
 		default:
