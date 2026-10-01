@@ -344,3 +344,139 @@ func TestDelArray(t *testing.T) {
 	}
 
 }
+
+func TestAppendArray(t *testing.T) {
+	jsonText := `{
+		"name":["younus","fami","zayan"],
+		"occupation": {
+			"title" : "King"
+		}
+	}`
+
+	var jsonDocument map[string]interface{}
+	json.Unmarshal([]byte(jsonText), &jsonDocument)
+
+	in := "/name/3"
+	p, err := NewJsonPointer(in)
+	if err != nil {
+		t.Fatalf("NewJsonPointer(%v) error %v", in, err)
+	}
+
+	_, err = p.Set(jsonDocument, "Aryan")
+	if err != nil {
+		t.Fatalf("Set(%v) error %v", in, err)
+	}
+
+	nameList, ok := jsonDocument["name"].([]interface{})
+	if !ok {
+		t.Fatalf("jsonDocument[\"name\"] is not []interface{}")
+	}
+
+	if len(nameList) != 4 {
+		t.Fatalf("Expected 4 elements, got %d", len(nameList))
+	}
+
+	if nameList[3] != "Aryan" {
+		t.Errorf("Expected Aryan, got %v", nameList[3])
+	}
+}
+
+func TestAppendArrayHyphen(t *testing.T) {
+	jsonText := `{"name":["younus","fami"]}`
+
+	var jsonDocument map[string]interface{}
+	json.Unmarshal([]byte(jsonText), &jsonDocument)
+
+	in := "/name/-"
+	p, err := NewJsonPointer(in)
+	if err != nil {
+		t.Fatalf("NewJsonPointer(%v) error %v", in, err)
+	}
+
+	_, err = p.Set(jsonDocument, "zayan")
+	if err != nil {
+		t.Fatalf("Set(%v) error %v", in, err)
+	}
+
+	nameList := jsonDocument["name"].([]interface{})
+	if len(nameList) != 3 || nameList[2] != "zayan" {
+		t.Errorf("Expected zayan at index 2, got %v", nameList)
+	}
+
+	// Hyphen in Get should return error (RFC 6901 section 4)
+	_, _, err = p.Get(jsonDocument)
+	if err == nil {
+		t.Errorf("Expected error getting hyphen index, got nil")
+	}
+}
+
+func TestAppendArrayRoot(t *testing.T) {
+	jsonText := `["a", "b"]`
+
+	var jsonDocument []interface{}
+	json.Unmarshal([]byte(jsonText), &jsonDocument)
+
+	// Append via index
+	p1, err := NewJsonPointer("/2")
+	if err != nil {
+		t.Fatalf("NewJsonPointer error: %v", err)
+	}
+
+	doc, err := p1.Set(jsonDocument, "c")
+	if err != nil {
+		t.Fatalf("Set error: %v", err)
+	}
+
+	arr := doc.([]interface{})
+	if len(arr) != 3 || arr[2] != "c" {
+		t.Fatalf("Expected [a b c], got %v", arr)
+	}
+
+	// Append via hyphen
+	p2, err := NewJsonPointer("/-")
+	if err != nil {
+		t.Fatalf("NewJsonPointer error: %v", err)
+	}
+
+	doc, err = p2.Set(arr, "d")
+	if err != nil {
+		t.Fatalf("Set error: %v", err)
+	}
+
+	arr = doc.([]interface{})
+	if len(arr) != 4 || arr[3] != "d" {
+		t.Fatalf("Expected [a b c d], got %v", arr)
+	}
+
+	// Out of bounds set should error
+	p3, err := NewJsonPointer("/10")
+	if err != nil {
+		t.Fatalf("NewJsonPointer error: %v", err)
+	}
+	_, err = p3.Set(arr, "e")
+	if err == nil {
+		t.Errorf("Expected out of bound error for /10, got nil")
+	}
+}
+
+func TestDelRootArray(t *testing.T) {
+	jsonText := `["first", "second", "third"]`
+
+	var jsonDocument []interface{}
+	json.Unmarshal([]byte(jsonText), &jsonDocument)
+
+	p, err := NewJsonPointer("/1")
+	if err != nil {
+		t.Fatalf("NewJsonPointer error: %v", err)
+	}
+
+	doc, err := p.Delete(jsonDocument)
+	if err != nil {
+		t.Fatalf("Delete error: %v", err)
+	}
+
+	arr := doc.([]interface{})
+	if len(arr) != 2 {
+		t.Fatalf("Expected 2 elements after deletion, got %d", len(arr))
+	}
+}
