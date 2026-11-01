@@ -94,7 +94,9 @@ func (p *JsonPointer) Set(document interface{}, value interface{}) (interface{},
 func (p *JsonPointer) Delete(document interface{}) (interface{}, error) {
 	is := &implStruct{mode: "DEL", inDocument: document}
 	p.implementation(is)
-	return document, is.outError
+	// inDocument is replaced when the deleted element is the member of the
+	// array at the root of the document, so the shortened document is returned.
+	return is.inDocument, is.outError
 }
 
 // Both Get and Set functions use the same implementation to avoid code duplication
@@ -161,10 +163,28 @@ func (p *JsonPointer) implementation(i *implStruct) {
 			if isLastToken && i.mode == "SET" {
 				v[tokenIndex] = i.setInValue
 			} else if isLastToken && i.mode == "DEL" {
-				v[tokenIndex] = v[len(v)-1]
-				v[len(v)-1] = nil
-				v = v[:len(v)-1]
-				previousNodes[ti-1].(map[string]interface{})[previousTokens[ti-1]] = v
+				// Remove the element, keeping the remaining elements in
+				// order, then store the shortened slice in the parent
+				// container (or in the document itself when the array is
+				// the root of the document).
+				v = append(v[:tokenIndex], v[tokenIndex+1:]...)
+				if ti == 0 {
+					i.inDocument = v
+				} else {
+					switch parent := previousNodes[ti-1].(type) {
+					case map[string]interface{}:
+						parent[previousTokens[ti-1]] = v
+					case []interface{}:
+						parentIndex, err := strconv.Atoi(previousTokens[ti-1])
+						if err != nil || parentIndex < 0 || parentIndex >= len(parent) {
+							i.outError = fmt.Errorf("Invalid array index '%s'", previousTokens[ti-1])
+							i.getOutKind = reflect.Slice
+							i.getOutNode = nil
+							return
+						}
+						parent[parentIndex] = v
+					}
+				}
 			}
 
 		default:
