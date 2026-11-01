@@ -344,3 +344,71 @@ func TestDelArray(t *testing.T) {
 	}
 
 }
+
+func TestDelArrayPreservesOrder(t *testing.T) {
+	var jsonDocument map[string]interface{}
+	json.Unmarshal([]byte(`{"a": [1, 2, 3, 4]}`), &jsonDocument)
+
+	in := "/a/0"
+	p, err := NewJsonPointer(in)
+	if err != nil {
+		t.Errorf("NewJsonPointer(%v) error %v", in, err.Error())
+	}
+
+	if _, err = p.Delete(jsonDocument); err != nil {
+		t.Errorf("Delete(%v) error %v", in, err.Error())
+	}
+
+	a := jsonDocument["a"].([]interface{})
+	want := []interface{}{float64(2), float64(3), float64(4)}
+	if len(a) != len(want) {
+		t.Errorf("Delete(%v): got %v, want %v", in, a, want)
+	}
+	for i := range want {
+		if a[i] != want[i] {
+			t.Errorf("Delete(%v): got %v, want %v (order must be preserved)", in, a, want)
+			break
+		}
+	}
+}
+
+func TestDelArrayAtRoot(t *testing.T) {
+	document := []interface{}{1, 2, 3}
+
+	in := "/0"
+	p, err := NewJsonPointer(in)
+	if err != nil {
+		t.Errorf("NewJsonPointer(%v) error %v", in, err.Error())
+	}
+
+	out, err := p.Delete(document)
+	if err != nil {
+		t.Errorf("Delete(%v) error %v", in, err.Error())
+	}
+
+	want := []interface{}{2, 3}
+	got, ok := out.([]interface{})
+	if !ok || len(got) != 2 || got[0] != want[0] || got[1] != want[1] {
+		t.Errorf("Delete(%v): got %#v, want %v", in, out, want)
+	}
+}
+
+func TestDelNestedArray(t *testing.T) {
+	document := []interface{}{[]interface{}{10, 20, 30}, 40}
+
+	in := "/0/1"
+	p, err := NewJsonPointer(in)
+	if err != nil {
+		t.Errorf("NewJsonPointer(%v) error %v", in, err.Error())
+	}
+
+	if _, err = p.Delete(document); err != nil {
+		t.Errorf("Delete(%v) error %v", in, err.Error())
+	}
+
+	got := document[0].([]interface{})
+	want := []interface{}{10, 30}
+	if len(got) != len(want) || got[0] != want[0] || got[1] != want[1] {
+		t.Errorf("Delete(%v): got %v, want %v", in, got, want)
+	}
+}
