@@ -164,7 +164,7 @@ func (p *JsonPointer) implementation(i *implStruct) {
 				v[tokenIndex] = v[len(v)-1]
 				v[len(v)-1] = nil
 				v = v[:len(v)-1]
-				previousNodes[ti-1].(map[string]interface{})[previousTokens[ti-1]] = v
+				previousNodes[ti-1].(map[string]interface{})[decodeReferenceToken(previousTokens[ti-1])] = v
 			}
 
 		default:

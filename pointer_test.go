@@ -27,6 +27,7 @@ package gojsonpointer
 
 import (
 	"encoding/json"
+	"reflect"
 	"testing"
 )
 
@@ -343,4 +344,28 @@ func TestDelArray(t *testing.T) {
 		t.Errorf("Delete(%v) error (%s)", in, a)
 	}
 
+}
+
+func TestDelArrayEscapedParent(t *testing.T) {
+	for _, tt := range []struct {
+		key     string
+		escaped string
+	}{
+		{"a/b", "a~1b"},
+		{"a~b", "a~0b"},
+		{"a~/b", "a~0~1b"},
+	} {
+		document := map[string]interface{}{tt.key: []interface{}{"keep", "remove"}}
+		pointer, err := NewJsonPointer("/" + tt.escaped + "/1")
+		if err != nil {
+			t.Fatalf("NewJsonPointer for %q: %v", tt.key, err)
+		}
+		if _, err := pointer.Delete(document); err != nil {
+			t.Fatalf("Delete for %q: %v", tt.key, err)
+		}
+		want := map[string]interface{}{tt.key: []interface{}{"keep"}}
+		if !reflect.DeepEqual(document, want) {
+			t.Errorf("Delete for %q: got %#v, want %#v", tt.key, document, want)
+		}
+	}
 }
